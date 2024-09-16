@@ -1,11 +1,11 @@
 import './styles.css';
-import TaskManager from './TaskManager';
+import PipelinesManager from './PipelinesManager';
 import React from 'react';
 
 export default function App() {
   return (
     <div className="App">
-      <TaskManager />
+      <PipelinesManager />
     </div>
   );
 }

@@ -15,10 +15,11 @@
 import { STATUS } from './utils';
 
 export class TaskScheduler {
-  constructor(timeoutDuration) {
+  constructor(timeoutDuration, timeoutRetries) {
     this.queue = [];
     this.isRunning = false;
     this.timeoutDuration = timeoutDuration;
+    this.timeoutRetries = timeoutRetries;
   }
 
   enqueue(task, callback) {
@@ -65,7 +66,7 @@ export class TaskScheduler {
     timeoutId = setTimeout(() => {
       hasTimedOut = true;
 
-      if (retries < 1) {
+      if (retries < this.timeoutRetries) {
         // Retry the task if retries are available
         callback(STATUS.RETRY);
         this.executeTask(task, callback, retries + 1);

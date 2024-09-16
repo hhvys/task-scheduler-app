@@ -1,16 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { TaskScheduler } from './TaskScheduler';
-import { createNewTask, TIMEOUT_DURATION } from './utils';
+import { createNewPipeline, TIMEOUT_DURATION } from './utils';
 
-const TaskManager = ({ timeoutDuration = TIMEOUT_DURATION }) => {
-  const [tasks, setTasks] = useState([]);
-  const taskRunner = useMemo(() => new TaskScheduler(timeoutDuration), []);
+const PipelinesManager = ({ timeoutDuration = TIMEOUT_DURATION }) => {
+  const [pipelines, setPipelines] = useState([]);
+  const taskRunner = useMemo(() => new TaskScheduler(timeoutDuration, 1), []);
   // const taskRunner = new TaskScheduler(TIMEOUT_DURATION);
 
-  const updateTaskStatus = (taskId, status) => {
-    setTasks((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, status } : task))
+  const updatePipelineStatus = (pipelineId, status) => {
+    setPipelines((prev) =>
+      prev.map((p) => (p.id === pipelineId ? { ...p, status } : p))
     );
   };
 
@@ -25,23 +25,23 @@ const TaskManager = ({ timeoutDuration = TIMEOUT_DURATION }) => {
               <button
                 className="bg-blue-500 text-white px-4 py-2 rounded"
                 onClick={() => {
-                  const newTask = createNewTask(timeDuration);
+                  const newPipeline = createNewPipeline(timeDuration);
                   flushSync(() => {
-                    setTasks((prev) => [...prev, newTask]);
+                    setPipelines((prev) => [...prev, newPipeline]);
                   });
                   taskRunner.enqueue(
                     (onComplete) => {
                       setTimeout(() => {
                         onComplete();
-                      }, newTask.duration);
+                      }, newPipeline.duration);
                     },
                     (status) => {
-                      updateTaskStatus(newTask.id, status);
+                      updatePipelineStatus(newPipeline.id, status);
                     }
                   );
                 }}
               >
-                Add Pipeline ({timeDuration}s)
+                Add Pipeline ({timeDuration / 1000}s)
               </button>
             ))}
           </div>
@@ -55,20 +55,32 @@ const TaskManager = ({ timeoutDuration = TIMEOUT_DURATION }) => {
             </tr>
           </thead>
           <tbody>
-            {tasks.map((task) => (
+            {pipelines.map((pipeline, index) => (
               <tr
-                key={task.id}
-                data-testid={`task-row-${task.id}`}
+                key={pipeline.id}
+                data-testid={`p-row-${index}`}
                 className="cursor-pointer"
               >
-                <td className="py-2 px-4 border-b" data-cell-type="id">
-                  {task.id}
+                <td
+                  className="py-2 px-4 border-b"
+                  data-cell-type="id"
+                  data-testid={`p-id-${index}`}
+                >
+                  {pipeline.id}
                 </td>
-                <td className="py-2 px-4 border-b" data-cell-type="title">
-                  {task.duration}s
+                <td
+                  className="py-2 px-4 border-b"
+                  data-cell-type="title"
+                  data-testid={`p-duration-${index}`}
+                >
+                  {pipeline.duration / 1000}s
                 </td>
-                <td className="py-2 px-4 border-b" data-cell-type="status">
-                  {task.status}
+                <td
+                  className="py-2 px-4 border-b"
+                  data-cell-type="status"
+                  data-testid={`p-status-${index}`}
+                >
+                  {pipeline.status}
                 </td>
               </tr>
             ))}
@@ -79,4 +91,4 @@ const TaskManager = ({ timeoutDuration = TIMEOUT_DURATION }) => {
   );
 };
 
-export default TaskManager;
+export default PipelinesManager;
