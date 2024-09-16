@@ -1,11 +1,13 @@
+// THIS FILE IS LOCKED. IT IS RECOMMENDED THAT YOU DO NOT MODIFY THIS FILE. ANY MODIFICATIONS IN THIS FILE IS NOT CONSIDERED DURING THE EVALUATION OF THIS QUESTION.
+
 /*
  * TaskRunner
  *
  1. **Immediate Execution:** If there are no tasks in the queue, the task execution should start immediately.
  2. **Sequential Execution:** Tasks should be performed sequentially. At any point in time, no more than one task should run.
  3. **Callback Invocation:** The callback should be invoked with a `Result({data, error})` object.
- 4. **Timeout Handling:** If a task takes more than 2 seconds, invoke the callback with a **TIMEOUT** error.
- 5. **Retry Mechanism:** In case of a TIMEOUT, retry the task execution twice or until the task is completed/failed, whichever comes first.
+ 4. **Timeout Handling:** If a task takes more than `timeoutDuration`, invoke the callback with a **TIMEOUT** error.
+ 5. **Retry Mechanism:** In case of a TIMEOUT, retry the task execution for `timeoutRetries` or until the task is completed/failed, whichever comes first.
  *
  */
 
@@ -15,7 +17,7 @@
 import { STATUS } from './utils';
 
 export class TaskScheduler {
-  constructor(timeoutDuration, timeoutRetries) {
+  constructor(timeoutDuration, timeoutRetries = 5) {
     this.queue = [];
     this.isRunning = false;
     this.timeoutDuration = timeoutDuration;

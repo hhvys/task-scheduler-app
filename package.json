@@ -12,7 +12,7 @@
     "react-test-renderer": "^18.3.1"
   },
   "scripts": {
-    "start": "webpack-dev-server --hot --mode development --host 0.0.0.0 --port 3001",
+    "start": "webpack-dev-server --hot --mode development --host 0.0.0.0",
     "build": "webpack --mode production",
     "test": "jest --testTimeout=10000 --verbose --ci --testResultsProcessor=\"jest-junit\"",
     "sample_tests": "jest --testTimeout=10000 --verbose --ci --testResultsProcessor=\"jest-junit\" -- src/__tests__/sample.test.js",

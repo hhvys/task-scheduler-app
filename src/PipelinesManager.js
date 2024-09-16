@@ -4,7 +4,7 @@ import { createNewPipeline, TIMEOUT_DURATION } from './utils';
 
 const PipelinesManager = ({ timeoutDuration = TIMEOUT_DURATION }) => {
   const [pipelines, setPipelines] = useState([]);
-  const taskRunner = new TaskScheduler(TIMEOUT_DURATION);
+  const taskRunner = new TaskScheduler(timeoutDuration);
   
   return (
     <div className="p-4 flex gap-4">
