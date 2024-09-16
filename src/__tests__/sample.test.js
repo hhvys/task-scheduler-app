@@ -1,228 +1,169 @@
-import {render, screen, waitFor} from "@testing-library/react";
-import user from "@testing-library/user-event";
-import "@testing-library/jest-dom";
-import TaskManager from "../TaskManager";
-import TaskCard from "../TaskCard";
+import React from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import PipelinesManager from '../PipelinesManager';
 
-jest.mock('../CloseButton', () => require('../__mocks__/CloseButton')(jest.fn()));
-global.renderCountArgs = [];
+jest.useFakeTimers();
 
-describe("1.", () => {
-  let tasks = [
-    {
-      id: 1,
-      title: "Task 1",
-      status: "In Progress",
-      assignee: "Alice",
-      dueDate: "2024-08-20",
-    },
-  ];
+const renderInStrictMode = (ui) =>
+  render(<React.StrictMode>{ui}</React.StrictMode>);
 
-  const loadTasks = () =>
-    new Promise((res) => {
-      setTimeout(() => {
-        res(tasks);
-      }, 100)
-    });
+describe('1.', () => {
+  test('IDs of pipeline should be continues starting from 1.', () => {
+    renderInStrictMode(<PipelinesManager />);
+    const add1sPipelines = screen.getByTestId('add-pipeline-1000');
 
-  test("Refresh icon should not spin initially", async () => {
-    // jest.useFakeTimers();
+    fireEvent.click(add1sPipelines);
+    fireEvent.click(add1sPipelines);
+    fireEvent.click(add1sPipelines);
 
-    render(<TaskManager loadTasks={loadTasks}/>);
-
-    // jest.runAllTimers();
-
-    await screen.findByText("Task 1");
-
-    const iconEl = screen.getByTestId("refresh-icon");
-    expect(iconEl.classList.contains("animate-spin")).toBe(false);
-
-    // jest.useRealTimers()
-  });
-  test("Refresh icon should spin when refreshing and stop when done", async () => {
-    // jest.useFakeTimers();
-
-    render(<TaskManager loadTasks={loadTasks}/>);
-
-    // jest.runAllTimers();
-
-    await screen.findByText("Task 1");
-
-    const el = screen.getByTestId("refresh-button");
-
-    await user.click(el);
-
-    const iconEl = screen.getByTestId("refresh-icon");
-    expect(iconEl.classList.contains("animate-spin")).toBe(true);
-
-    // jest.runAllTimers();
-
-    await waitFor(() => {
-      expect(iconEl.classList.contains("animate-spin")).toBe(false);
-    }, {timeout: 200})
-
-    // jest.useRealTimers()
+    expect(screen.getByTestId('p-id-1')).toHaveTextContent('1');
+    expect(screen.getByTestId('p-id-2')).toHaveTextContent('2');
+    expect(screen.getByTestId('p-id-3')).toHaveTextContent('3');
   });
 });
 
-describe("2.", () => {
-  let tasks = [
-    {
-      id: 1,
-      title: "Task 1",
-      status: "In Progress",
-      assignee: "Alice",
-      dueDate: "2024-08-20",
-    },
-  ];
+describe('2.', () => {
+  test('First pipeline should be IN_PROGRESS as soon as it is added.', () => {
+    renderInStrictMode(<PipelinesManager />);
+    const add1sPipelines = screen.getByTestId('add-pipeline-1000');
 
-  const loadTasks = () =>
-    new Promise((res) => {
-      setTimeout(() => {
-        res(tasks);
-        tasks = [
-          {
-            ...tasks[0],
-            status: tasks[0].status === "In Progress" ? "Pending" : "In Progress",
-          },
-          ...tasks.slice(1),
-        ];
-      }, 100)
+    fireEvent.click(add1sPipelines);
+
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
+  });
+  test('If a pipeline is IN_PROGRESS then new pipeline should be in QUEUE when added.', () => {
+    renderInStrictMode(<PipelinesManager />);
+    const add1sPipelines = screen.getByTestId('add-pipeline-1000');
+
+    fireEvent.click(add1sPipelines);
+    fireEvent.click(add1sPipelines);
+    fireEvent.click(add1sPipelines);
+
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('QUEUE');
+    expect(screen.getByTestId('p-status-3')).toHaveTextContent('QUEUE');
+  });
+  test('Pipeline should be in COMPLETED state after its duration, if it does not TIMEOUT.', () => {
+    renderInStrictMode(<PipelinesManager timeoutDuration={2000} />);
+    const add1sPipelines = screen.getByTestId('add-pipeline-1000');
+
+    fireEvent.click(add1sPipelines);
+
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
+
+    act(() => {
+      jest.advanceTimersByTime(1100);
     });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('COMPLETED');
+  });
+  test('Queued pipeline should be IN_PROGRESS as soon as IN_PROGRESS pipeline finishes execution.', () => {
+    renderInStrictMode(<PipelinesManager timeoutDuration={1800} />);
+    const add1sPipelines = screen.getByTestId('add-pipeline-1000');
 
-  test("When data is refreshed in the table, it should be reflected in the card view too", async () => {
-    // jest.useFakeTimers();
-    render(<TaskManager loadTasks={loadTasks}/>);
+    fireEvent.click(add1sPipelines);
+    fireEvent.click(add1sPipelines);
+    fireEvent.click(add1sPipelines);
 
-    const cellEl = await screen.findByText("Task 1");
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('QUEUE');
+    expect(screen.getByTestId('p-status-3')).toHaveTextContent('QUEUE');
 
-    let taskRowEl = screen.getByTestId(`task-row-${tasks[0].id}`);
-    let taskRowStatusCellEl = taskRowEl.querySelector('[data-cell-type="status"]');
+    act(() => {
+      jest.advanceTimersByTime(1100);
+    });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('COMPLETED');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('IN_PROGRESS');
+    expect(screen.getByTestId('p-status-3')).toHaveTextContent('QUEUE');
 
-    expect(taskRowStatusCellEl.textContent).toBe("In Progress");
+    act(() => {
+      jest.advanceTimersByTime(1100);
+    });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('COMPLETED');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('COMPLETED');
+    expect(screen.getByTestId('p-status-3')).toHaveTextContent('IN_PROGRESS');
 
-    await user.click(cellEl);
+    act(() => {
+      jest.advanceTimersByTime(1100);
+    });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('COMPLETED');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('COMPLETED');
+    expect(screen.getByTestId('p-status-3')).toHaveTextContent('COMPLETED');
+  });
 
-    let taskCardEl = screen.getByTestId("task-card");
-    let taskCardStatusSelectEl = taskCardEl.querySelector("#status");
-    expect(taskCardStatusSelectEl.dataset.value).toBe("In Progress");
+  test('Pipeline should be in RETRY state after `timeoutDuration` if it does not finish within timeoutDuration.', () => {
+    renderInStrictMode(<PipelinesManager timeoutDuration={2500} />);
+    const add3sPipelines = screen.getByTestId('add-pipeline-3000');
 
-    const refreshButtonEl = screen.getByTestId("refresh-button");
-    await user.click(refreshButtonEl);
+    fireEvent.click(add3sPipelines);
 
-    await waitFor(() => {
-      expect(taskRowStatusCellEl.textContent).toBe("Pending");
-    }, {timeout: 200});
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
 
-    expect(taskCardStatusSelectEl.dataset.value).toBe("Pending");
+    act(() => {
+      jest.advanceTimersByTime(2600);
+    });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('RETRY');
+  });
+
+  test('If Pipeline doest not finish within `timeoutDuration` even after one retry, we should mark it as TIMEOUT without waiting for its completion.', () => {
+    renderInStrictMode(<PipelinesManager timeoutDuration={2500} />);
+    const add3sPipelines = screen.getByTestId('add-pipeline-3000');
+
+    fireEvent.click(add3sPipelines);
+
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
+
+    act(() => {
+      jest.advanceTimersByTime(5200); // no need to wait for 6s, we just have to wait for timeoutDuration * 2
+    });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('TIMEOUT');
+  });
+
+  test('Next pipeline should be in QUEUE when previous pipeline is in RETRY state.', () => {
+    renderInStrictMode(<PipelinesManager timeoutDuration={2500} />);
+    const add3sPipelines = screen.getByTestId('add-pipeline-3000');
+    
+    fireEvent.click(add3sPipelines);
+    
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
+    
+    act(() => {
+      jest.advanceTimersByTime(2600);
+    });
+    
+    fireEvent.click(add3sPipelines);
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('RETRY');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('QUEUE');
+  });
+  
+  test('Queued pipeline should be IN_PROGRESS if previous pipeline TimesOut.', () => {
+    renderInStrictMode(<PipelinesManager timeoutDuration={2500} />);
+    const add3sPipelines = screen.getByTestId('add-pipeline-3000');
+    const add1sPipelines = screen.getByTestId('add-pipeline-1000');
+    
+    fireEvent.click(add3sPipelines);
+    fireEvent.click(add1sPipelines);
+    
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('IN_PROGRESS');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('QUEUE');
+    
+    act(() => {
+      jest.advanceTimersByTime(2600);
+    });
+    
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('RETRY');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('QUEUE');
+    
+    act(() => {
+      jest.advanceTimersByTime(2600);
+    });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('TIMEOUT');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('IN_PROGRESS');
+    
+    act(() => {
+      jest.advanceTimersByTime(1100);
+    });
+    expect(screen.getByTestId('p-status-1')).toHaveTextContent('TIMEOUT');
+    expect(screen.getByTestId('p-status-2')).toHaveTextContent('COMPLETED');
   });
 });
-
-describe("3.", () => {
-  let tasks = [
-    {
-      id: 1,
-      title: "Task 1",
-      status: "In Progress",
-      assignee: "Alice",
-      dueDate: "2024-08-20",
-    },
-  ];
-
-  const loadTasks = () =>
-    new Promise((res) => {
-      setTimeout(() => {
-        res(tasks);
-      }, 100)
-    });
-
-  test("Editing a task in the card view should also update the task in the table view", async () => {
-    render(<TaskManager loadTasks={loadTasks}/>);
-
-    const cellEl = await screen.findByText("Task 1");
-    await user.click(cellEl);
-
-    await screen.findByTestId("task-card");
-
-    // In the task card, replace existing content with "hello world"
-    const inputEl = screen.getByLabelText('Title');
-    inputEl.setSelectionRange(0, inputEl.value.length);
-
-    await user.type(inputEl, "hello world");
-    await user.tab();
-
-    // In the task card, the updated value should be "hello world"
-    expect(screen.getByLabelText('Title').value).toBe("hello world");
-
-    const taskRowEl = await screen.findByTestId(`task-row-${tasks[0].id}`);
-
-    // In the table, the value should be "hello world"
-    expect(taskRowEl.querySelector('[data-cell-type="title"]').textContent).toBe("hello world");
-  });
-});
-
-describe("4.", () => {
-  let tasks = [
-    {
-      id: 1,
-      title: "Task 1",
-      status: "In Progress",
-      assignee: "Alice",
-      dueDate: "2024-08-20",
-    },
-    {
-      id: 2,
-      title: "Task 2",
-      status: "Pending",
-      assignee: "Bob",
-      dueDate: "2024-08-22",
-    },
-  ];
-
-  const loadTasks = () =>
-    new Promise((res) => {
-      setTimeout(() => {
-        res(tasks);
-      }, 100)
-    });
-
-  test("Clicking on a task in the table should update the task card view", async () => {
-    render(<TaskManager loadTasks={loadTasks}/>);
-
-    await user.click(await screen.findByText("Task 1"));
-
-    await screen.findByTestId("task-card");
-
-    // the value in the task card
-    expect(screen.getByLabelText('Title').value).toBe("Task 1");
-
-    await user.click(await screen.findByText("Task 2"));
-
-    // the value in the task card
-    expect(screen.getByLabelText('Title').value).toBe("Task 2");
-  });
-});
-
-describe("5.", () => {
-  test("TaskCard should not render unnecessarily", async () => {
-    let task = {
-      id: 1,
-      title: "Task 1",
-      status: "In Progress",
-      assignee: "Alice",
-      dueDate: "2024-08-20",
-    };
-
-    global.renderCountArgs = [];
-
-    const {rerender} = render(<TaskCard task={task} statuses={[]} users={[]}/>);
-
-    task = {...task};
-    rerender(<TaskCard task={task} statuses={[]} users={[]}/>);
-    expect(global.renderCountArgs).toEqual([
-      [1],
-      [2],
-    ]);
-  });
-})
-
