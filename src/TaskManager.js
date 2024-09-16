@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { TaskScheduler } from './TaskScheduler';
 import { createNewTask, TIMEOUT_DURATION } from './utils';
 
-const TaskManager = () => {
+const TaskManager = ({ timeoutDuration = TIMEOUT_DURATION }) => {
   const [tasks, setTasks] = useState([]);
-  const [newTaskDuration, setNewTaskDuration] = useState('');
-  const taskRunner = useMemo(() => new TaskScheduler(TIMEOUT_DURATION), []);
+  const taskRunner = useMemo(() => new TaskScheduler(timeoutDuration), []);
   // const taskRunner = new TaskScheduler(TIMEOUT_DURATION);
 
   const updateTaskStatus = (taskId, status) => {
@@ -14,55 +14,39 @@ const TaskManager = () => {
     );
   };
 
-  const createAndQueueNewTask = () => {
-    const newTask = createNewTask(newTaskDuration);
-    taskRunner.enqueue(
-      (onComplete, onError) => {
-        setTimeout(() => {
-          onComplete();
-        }, newTask.duration * 1_000);
-      },
-      (status) => updateTaskStatus(newTask.id, status)
-    );
-
-    return newTask;
-  };
-
   return (
     <div className="p-4 flex gap-4">
       <div className="flex-1">
         <header className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Tasks</h1>
-          <div className="flex-none flex gap-4">
-            <input
-              type="number"
-              placeholder="Add Task Duration..."
-              className="border rounded px-2 py-1"
-              value={newTaskDuration}
-              onChange={(e) => setNewTaskDuration(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (Number(newTaskDuration)) {
-                    setTasks((prev) => [...prev, createAndQueueNewTask()]);
-                    setNewTaskDuration('');
-                  }
-                }
-              }}
-            />
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={() => {
-                if (Number(newTaskDuration)) {
-                  setTasks((prev) => [...prev, createAndQueueNewTask()]);
-                  setNewTaskDuration('');
-                }
-              }}
-            >
-              Add Task
-            </button>
+          <h1 className="text-2xl font-bold">Pipelines</h1>
+          <div className="flex-none flex gap-4 items-center flex">
+            <span>Timeout Duration: {TIMEOUT_DURATION / 1_000}s</span>
+            {[1000, 3000, 5000].map((timeDuration) => (
+              <button
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+                onClick={() => {
+                  const newTask = createNewTask(timeDuration);
+                  flushSync(() => {
+                    setTasks((prev) => [...prev, newTask]);
+                  });
+                  taskRunner.enqueue(
+                    (onComplete) => {
+                      setTimeout(() => {
+                        onComplete();
+                      }, newTask.duration);
+                    },
+                    (status) => {
+                      updateTaskStatus(newTask.id, status);
+                    }
+                  );
+                }}
+              >
+                Add Pipeline ({timeDuration}s)
+              </button>
+            ))}
           </div>
         </header>
-        <table className="min-w-full bg-white border">
+        <table className="min-w-full bg-white border table-fixed border-collapse w-full">
           <thead>
             <tr>
               <th className="py-2 px-4 border-b text-left">ID</th>

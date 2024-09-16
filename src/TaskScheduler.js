@@ -61,7 +61,7 @@ export class TaskScheduler {
       }
     };
 
-    // Set timeout for the task (2 seconds)
+    // Set timeout for the task
     timeoutId = setTimeout(() => {
       hasTimedOut = true;
 

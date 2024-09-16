@@ -7,7 +7,7 @@ export const STATUS = {
   TIMEOUT: 'TIMEOUT',
 };
 
-export const TIMEOUT_DURATION = 4000;
+export const TIMEOUT_DURATION = 3500;
 
 let id = 1;
 export const createNewTask = (duration) => ({
